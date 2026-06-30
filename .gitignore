@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Data and Results
+data/
+results/
+*.mat
+*.csv
+*.log
+
+# IDE and Project
+.idea/
+.vscode/
+.agents/
+plan.md
+findings.md
+brain/
+.gemini/

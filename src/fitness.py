@@ -1,0 +1,50 @@
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import cross_val_score, KFold
+
+_cache = {}
+_current_data_shape = None
+
+def fitness(X: np.ndarray, data: np.ndarray, labels: np.ndarray, k_neighbors: int = 1, evaluator: str = "knn") -> float:
+    """Evaluate a binary feature mask X using KNN or SVM + 5-fold CV.
+    
+    Args:
+        X: Binary mask array. 1 = selected.
+        data: Feature matrix.
+        labels: Label vector.
+        k_neighbors: Number of KNN neighbours.
+        evaluator: "knn" or "svm"
+        
+    Returns:
+        Mean accuracy across folds in range [0, 100].
+    """
+    global _cache, _current_data_shape
+    
+    # Reset cache if dataset changes
+    if _current_data_shape != data.shape:
+        _cache.clear()
+        _current_data_shape = data.shape
+
+    cache_key = (X.tobytes(), k_neighbors)
+    if cache_key in _cache:
+        return _cache[cache_key]
+
+    sel = np.where(X == 1)[0]
+    if len(sel) == 0:
+        return 0.0
+
+    X_sel = data[:, sel]
+    
+    if evaluator == "svm":
+        from sklearn.svm import LinearSVC
+        model = LinearSVC(dual=True, max_iter=2000)
+    else:
+        model = KNeighborsClassifier(n_neighbors=k_neighbors, metric="euclidean", algorithm="auto", n_jobs=1)
+    # k-fold CV as per MATLAB Fit.m
+    from sklearn.model_selection import StratifiedKFold
+    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    scores = cross_val_score(model, X_sel, labels, cv=kf, n_jobs=1)
+    
+    val = float(np.mean(scores) * 100.0)
+    _cache[cache_key] = val
+    return val
