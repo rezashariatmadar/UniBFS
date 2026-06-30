@@ -83,6 +83,7 @@ def main():
         n_inner_runs=3,
         MaxFEs_final=2000,
         Max_Run_final=Max_Run,
+        use_relifish=True,
         seed=42
     )
     tuned_time = time.time() - start

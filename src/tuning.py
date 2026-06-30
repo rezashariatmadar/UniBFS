@@ -19,7 +19,7 @@ from typing import Optional
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
-def _inner_objective(trial, X_train, y_train, n_inner_runs: int = 3) -> float:
+def _inner_objective(trial, X_train, y_train, n_inner_runs: int = 3, use_relifish: bool = False) -> float:
     """Optuna objective: evaluate param set on training data via mini runs."""
     from .unibfs import run_unibfs
 
@@ -37,6 +37,7 @@ def _inner_objective(trial, X_train, y_train, n_inner_runs: int = 3) -> float:
         Max_Run=n_inner_runs,  # fewer runs for speed
         verbose=False,
         n_jobs=-1,             # parallel runs within each trial
+        use_relifish=use_relifish,
         **params,
     )
     return result["mean_acc"]
@@ -50,6 +51,7 @@ def tune_unibfs(
     test_size: float = 0.2,
     MaxFEs_final: int = 6000,
     Max_Run_final: int = 10,
+    use_relifish: bool = False,
     seed: Optional[int] = None,
 ) -> dict:
     """Tune UniBFS with nested CV then evaluate on hold-out test set."""
@@ -65,7 +67,7 @@ def tune_unibfs(
     # Inner tuning with Optuna
     study = optuna.create_study(direction="maximize")
     study.optimize(
-        lambda trial: _inner_objective(trial, X_train, y_train, n_inner_runs),
+        lambda trial: _inner_objective(trial, X_train, y_train, n_inner_runs, use_relifish),
         n_trials=n_trials,
         show_progress_bar=True,
     )
@@ -82,6 +84,7 @@ def tune_unibfs(
         Max_Run=Max_Run_final,
         verbose=False,
         n_jobs=-1,
+        use_relifish=use_relifish,
         **best_params,
     )
 

@@ -5,7 +5,7 @@ from .rfe import rfe
 
 def _single_run(data: np.ndarray, labels: np.ndarray, MaxFEs: int, 
                 NSch: float, CHr: float, Ct: int, Nt: int, 
-                verbose: bool) -> dict:
+                verbose: bool, top_fisher: np.ndarray = None, top_relieff: np.ndarray = None) -> dict:
     n_samples, Nvar = data.shape
     
     BestCost_col = np.zeros(MaxFEs + 1)
@@ -14,12 +14,28 @@ def _single_run(data: np.ndarray, labels: np.ndarray, MaxFEs: int,
     EFs = 1
     counter = 0
     
-    X = np.random.randint(0, 2, Nvar)
-    if np.sum(X) == 0:
-        X[np.random.randint(0, Nvar)] = 1
+    if top_fisher is not None and top_relieff is not None:
+        X1 = np.random.randint(0, 2, Nvar)
+        X2 = np.zeros(Nvar, dtype=int)
+        X2[top_relieff] = 1
+        X3 = np.zeros(Nvar, dtype=int)
+        X3[top_fisher] = 1
         
-    Fit_X = fitness(X, data, labels, k_neighbors=1)
-    
+        fit1 = fitness(X1, data, labels, k_neighbors=1)
+        fit2 = fitness(X2, data, labels, k_neighbors=1)
+        fit3 = fitness(X3, data, labels, k_neighbors=1)
+        
+        fits = [fit1, fit2, fit3]
+        Xs = [X1, X2, X3]
+        best_idx = np.argmax(fits)
+        X = Xs[best_idx].copy()
+        Fit_X = fits[best_idx]
+    else:
+        X = np.random.randint(0, 2, Nvar)
+        if np.sum(X) == 0:
+            X[np.random.randint(0, Nvar)] = 1
+        Fit_X = fitness(X, data, labels, k_neighbors=1)
+        
     BestCost_col[EFs] = Fit_X
     SF_Best_Sol_col[EFs] = int(np.sum(X))
     
@@ -29,7 +45,21 @@ def _single_run(data: np.ndarray, labels: np.ndarray, MaxFEs: int,
         if np.random.rand() > NSch:
             S_Index = np.where(X == 0)[0]
             if len(S_Index) > 0:
-                K = S_Index[np.random.randint(0, len(S_Index))]
+                if top_fisher is not None and top_relieff is not None and np.random.rand() <= 0.5:
+                    if np.random.rand() > 0.5:
+                        valid_relief = [f for f in top_relieff if X[f] == 0]
+                        if len(valid_relief) > 0:
+                            K = np.random.choice(valid_relief)
+                        else:
+                            K = np.random.choice(S_Index)
+                    else:
+                        valid_fisher = [f for f in top_fisher if X[f] == 0]
+                        if len(valid_fisher) > 0:
+                            K = np.random.choice(valid_fisher)
+                        else:
+                            K = np.random.choice(S_Index)
+                else:
+                    K = np.random.choice(S_Index)
                 X_New[K] = 1
         else:
             nmu = int(np.ceil(np.random.rand() * Nvar))
@@ -95,11 +125,22 @@ def _single_run(data: np.ndarray, labels: np.ndarray, MaxFEs: int,
 
 def run_unibfs(data: np.ndarray, labels: np.ndarray, MaxFEs: int = 6000, 
                NSch: float = 0.8, CHr: float = 0.01, Ct: int = 500, Nt: int = 50, 
-               Max_Run: int = 1, n_jobs: int = 1, verbose: bool = True) -> dict:
+               Max_Run: int = 1, n_jobs: int = 1, verbose: bool = True, use_relifish: bool = False) -> dict:
     from joblib import Parallel, delayed
     
+    top_fisher = None
+    top_relieff = None
+    if use_relifish:
+        from .heuristics import fisher_score, relieff_score
+        f_scores = fisher_score(data, labels)
+        r_scores = relieff_score(data, labels)
+        
+        k_top = min(200, data.shape[1])
+        top_fisher = np.argsort(f_scores)[-k_top:]
+        top_relieff = np.argsort(r_scores)[-k_top:]
+        
     results = Parallel(n_jobs=n_jobs, backend="loky")(
-        delayed(_single_run)(data, labels, MaxFEs, NSch, CHr, Ct, Nt, verbose)
+        delayed(_single_run)(data, labels, MaxFEs, NSch, CHr, Ct, Nt, verbose, top_fisher, top_relieff)
         for _ in range(Max_Run)
     )
     
