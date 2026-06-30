@@ -7,20 +7,15 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+.venv/
+env/
 
-# Data and Results
-data/
-results/
-*.mat
-*.csv
-*.log
-
-# IDE and Project
-.idea/
+# IDE and Agent context
 .vscode/
+.idea/
 .agents/
 plan.md
 findings.md
-brain/
-.gemini/
+
+# Data
+data/

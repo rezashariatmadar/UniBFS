@@ -16,6 +16,7 @@ dependencies = [
     "torchaudio>=2.5.1",
     "torchvision>=0.20.1",
     "joblib",
+    "pytest>=9.1.1",
 ]
 
 [[tool.uv.index]]

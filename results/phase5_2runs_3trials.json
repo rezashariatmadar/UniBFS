@@ -1,0 +1,67 @@
+{
+  "MLL": {
+    "fixed_default": {
+      "test_accs": [
+        86.66666666666667,
+        93.33333333333333
+      ],
+      "nfeats": [
+        42,
+        34
+      ],
+      "mean_test_acc": 90.0,
+      "std_test_acc": 3.3333333333333286,
+      "mean_nfeats": 38.0,
+      "time_sec": 155.1109082698822,
+      "params": {
+        "NSch": 0.8,
+        "CHr": 0.01,
+        "Ct": 500,
+        "Nt": 50
+      }
+    },
+    "fixed_manual": {
+      "test_accs": [
+        93.33333333333333,
+        86.66666666666667
+      ],
+      "nfeats": [
+        75,
+        302
+      ],
+      "mean_test_acc": 90.0,
+      "std_test_acc": 3.3333333333333286,
+      "mean_nfeats": 188.5,
+      "time_sec": 184.91962885856628,
+      "params": {
+        "NSch": 0.2,
+        "CHr": 0.01,
+        "Ct": 500,
+        "Nt": 300
+      }
+    },
+    "optuna_tuned": {
+      "test_accs": [
+        80.0,
+        86.66666666666667
+      ],
+      "nfeats": [
+        8,
+        16
+      ],
+      "mean_test_acc": 83.33333333333334,
+      "std_test_acc": 3.3333333333333357,
+      "mean_nfeats": 12.0,
+      "best_params": {
+        "NSch": 0.9450621721446194,
+        "CHr": 0.002122556871176857,
+        "Ct": 792,
+        "Nt": 106
+      },
+      "time_sec": 340.9638569355011
+    },
+    "stats": {
+      "wilcoxon_default_vs_manual": {
+        "statistic": 1.5,
+        "p_value": 1.0,
+        "significant": 

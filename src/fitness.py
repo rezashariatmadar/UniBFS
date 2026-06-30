@@ -5,7 +5,7 @@ from sklearn.model_selection import cross_val_score, KFold
 _cache = {}
 _current_data_shape = None
 
-def fitness(X: np.ndarray, data: np.ndarray, labels: np.ndarray, k_neighbors: int = 1, evaluator: str = "knn") -> float:
+def fitness(X: np.ndarray, data: np.ndarray, labels: np.ndarray, k_neighbors: int = 1, evaluator: str = "svm") -> float:
     """Evaluate a binary feature mask X using KNN or SVM + 5-fold CV.
     
     Args:
@@ -37,7 +37,7 @@ def fitness(X: np.ndarray, data: np.ndarray, labels: np.ndarray, k_neighbors: in
     
     if evaluator == "svm":
         from sklearn.svm import LinearSVC
-        model = LinearSVC(dual=True, max_iter=2000)
+        model = KNeighborsClassifier(n_neighbors=k_neighbors, metric="euclidean", algorithm="auto", n_jobs=1)
     else:
         model = KNeighborsClassifier(n_neighbors=k_neighbors, metric="euclidean", algorithm="auto", n_jobs=1)
     # k-fold CV as per MATLAB Fit.m

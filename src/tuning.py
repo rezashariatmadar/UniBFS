@@ -92,8 +92,8 @@ def tune_unibfs(
         if len(sel) == 0:
             test_accs.append(0.0)
             continue
-        from sklearn.neighbors import KNeighborsClassifier
-        model = KNeighborsClassifier(n_neighbors=1, metric="euclidean")
+        from sklearn.svm import LinearSVC
+        model = LinearSVC(dual=False)
         model.fit(X_train[:, sel], y_train)
         preds = model.predict(X_test[:, sel])
         test_accs.append(float(np.mean(preds == y_test) * 100))
