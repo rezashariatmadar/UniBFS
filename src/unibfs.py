@@ -5,6 +5,7 @@ from .rfe import rfe
 
 def _single_run(data: np.ndarray, labels: np.ndarray, MaxFEs: int, 
                 NSch: float, CHr: float, Ct: int, Nt: int, 
+                ranks_relief: np.ndarray, ranks_fisher: np.ndarray,
                 verbose: bool) -> dict:
     n_samples, Nvar = data.shape
     
@@ -19,18 +20,57 @@ def _single_run(data: np.ndarray, labels: np.ndarray, MaxFEs: int,
         X[np.random.randint(0, Nvar)] = 1
         
     Fit_X = fitness(X, data, labels, k_neighbors=1)
-    
     BestCost_col[EFs] = Fit_X
     SF_Best_Sol_col[EFs] = int(np.sum(X))
+    EFs += 1
+    
+    X11 = np.zeros(Nvar, dtype=int)
+    Fit_X11 = 0.0
+    X22 = np.zeros(Nvar, dtype=int)
+    Fit_X22 = 0.0
+    
+    scan_limit = min(200, Nvar)
+    for i in range(1, scan_limit + 1):
+        if EFs > MaxFEs: break
+        
+        X1 = np.zeros(Nvar, dtype=int)
+        X1[ranks_relief[:i]] = 1
+        f1 = fitness(X1, data, labels, k_neighbors=1)
+        if f1 > Fit_X11:
+            X11 = X1.copy()
+            Fit_X11 = f1
+            
+        X2 = np.zeros(Nvar, dtype=int)
+        X2[ranks_fisher[:i]] = 1
+        f2 = fitness(X2, data, labels, k_neighbors=1)
+        if f2 > Fit_X22:
+            X22 = X2.copy()
+            Fit_X22 = f2
+            
+        best_overall_fit = max(Fit_X11, Fit_X22, Fit_X)
+        best_overall_len = int(np.sum(X11)) if best_overall_fit == Fit_X11 else (int(np.sum(X22)) if best_overall_fit == Fit_X22 else int(np.sum(X)))
+        
+        BestCost_col[EFs] = best_overall_fit
+        SF_Best_Sol_col[EFs] = best_overall_len
+        EFs += 1
+        
+    best_idx = np.argmax([Fit_X11, Fit_X22, Fit_X])
+    if best_idx == 0:
+        X, Fit_X = X11, Fit_X11
+    elif best_idx == 1:
+        X, Fit_X = X22, Fit_X22
     
     while EFs <= MaxFEs:
         X_New = X.copy()
         
         if np.random.rand() > NSch:
-            S_Index = np.where(X == 0)[0]
-            if len(S_Index) > 0:
-                K = S_Index[np.random.randint(0, len(S_Index))]
-                X_New[K] = 1
+            # Guided Addition (ReliFish)
+            k_rand = np.random.randint(0, min(100, Nvar))
+            if np.random.rand() > 0.5:
+                K = ranks_relief[k_rand]
+            else:
+                K = ranks_fisher[k_rand]
+            X_New[K] = 1
         else:
             nmu = int(np.ceil(np.random.rand() * Nvar))
             j = np.random.choice(Nvar, min(nmu, Nvar), replace=False)
@@ -97,9 +137,13 @@ def run_unibfs(data: np.ndarray, labels: np.ndarray, MaxFEs: int = 6000,
                NSch: float = 0.8, CHr: float = 0.01, Ct: int = 500, Nt: int = 50, 
                Max_Run: int = 1, n_jobs: int = 1, verbose: bool = True) -> dict:
     from joblib import Parallel, delayed
+    from .heuristics import fisher_score, relieff_score
+    
+    ranks_relief = relieff_score(data, labels, k=10)
+    ranks_fisher = fisher_score(data, labels)
     
     results = Parallel(n_jobs=n_jobs, backend="loky")(
-        delayed(_single_run)(data, labels, MaxFEs, NSch, CHr, Ct, Nt, verbose)
+        delayed(_single_run)(data, labels, MaxFEs, NSch, CHr, Ct, Nt, ranks_relief, ranks_fisher, verbose)
         for _ in range(Max_Run)
     )
     
